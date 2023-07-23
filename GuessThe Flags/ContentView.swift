@@ -13,21 +13,55 @@ struct ContentView: View {
     @State private var scoreTitle = ""
     @State private var score : Int = 0
     @State private var lives : Int = 3
-    
+    @State private var currentRound = 0
     // new worldmap
     let worldWest = "WorldWest"
     let worldEast = "WorldEast"
     let worldMid = "WorldMid"
     
     let maps = ["WorldWest", "WorldMid", "WorldEast"]
+    
+    @State var isShowingStartGame = false
     @State private var isShowingFlags = false
+    
     private var isRoundOne : Bool {
-                               return score != 0 }
-        
+        return currentRound == 0 }
+    
+    enum GameLabel {
+          case topText
+          case midText
+          }
+    
+    enum ShowTime {
+        case beforeRound
+        case playRound
+        case afterRound
+    }
+    
+    let roundStrings = ["guess the flag for each country !", "Round One",  "Round Two", "Round Three", "Round Four ", "Round Five", "Round Six", "Round Seven", "Round Eight", "Round Nine", "Round TEN"]
+    
     @State private var buttonsOpacity = 0.0
     
-    @State var countries = ["Estonia", "France", "Russia","Nigeria", "USA", "Poland", "Ireland", "Germany", "Spain","Italy", "UK"].shuffled()
+    
+    @State var countries = ["Estonia", "France","Nigeria", "USA", "Poland", "Ireland", "Germany", "Spain","Italy", "UK"].shuffled()
+    
     @State var correctAnswer = Int.random(in: 0...2)
+    
+    @State private var topText = ""
+    @State private var midText = ""
+    
+    let winningEmoji = ["🙌🏻", "🤟🏼", "💪🏼", "👀", "🥳", "😆", "☺️", "🔥", "⭐️", "☘️",]
+    let losingEmoji = ["💔", "👿", "🫥", "😞", "🤨", "🥺", "😵", "🤌🏼", "💀", "🙈"]
+    
+    @State private var isShowingPlayButton = false
+    
+    //twirl flags upon correct answer
+    @State private var animateAxisZero = 0.0
+    @State private var animateAxisOne = 0.0
+    @State private var animateAxisTwo = 0.0
+    
+    @State private var isShowingEmoji = false
+    
     // animate graphics
     @State private var colorPickTop = Color.black
     @State private var colorPickBottom = Color.yellow
@@ -47,7 +81,7 @@ struct ContentView: View {
     private let colorLine3 = 0.7
     private let colorLine4 = 1.2
     private let colorLine5 = 1.0
-
+    
     
     @State private var startRad = 100.0
     @State private var endRad = 400.0
@@ -57,7 +91,7 @@ struct ContentView: View {
     private let endRad3 = 900.0
     
     @State private var groupOpacity = 1.0
-
+    
     @State private var changeBackDrop = 1
     
     @State private var UnitPointer : UnitPoint = .top
@@ -65,7 +99,7 @@ struct ContentView: View {
     let centreBottom : UnitPoint = .bottom
     let centreLeft : UnitPoint = .leading
     let centreRight : UnitPoint = .trailing
-
+    
     @State private var refreshGradientTime = 3.0
     
     @State private var blackCover = 0.0
@@ -89,42 +123,52 @@ struct ContentView: View {
                 
                 
             } // animate when Group appears
-            .onAppear {
+            .onAppear{
                 resetGradientBackDrop()
+                resetGame()
+           
+            }
+            
+         //.animation(.easeIn .repeatForever(autoreverses: true))
+        .opacity(groupOpacity)
+        
+        // layer 2
+        Color.black
+            .ignoresSafeArea()
+            .opacity(blackCover)
+            .animation(.easeIn(duration: 0.4), value: blackCover)
+        
+        
+        VStack {
+            // Layer 3
+            VStack {
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3){
-                    isShowingFlags = true
-                    buttonsOpacity = 0.1
-                    score = 0
-                }
-                
-            } //.animation(.easeIn .repeatForever(autoreverses: true))
-            .opacity(groupOpacity)
+                Text(topText)
+                    .foregroundColor(.primary)
+                    .font(.subheadline.weight(.heavy))
+               
             
-            // layer 2
-            Color.black
-                .ignoresSafeArea()
-                .opacity(blackCover)
-                .animation(.easeIn(duration: 0.8), value: blackCover)
-            
-            
-            VStack{
-                // Layer 3
-                VStack {
-                    
-                    Text(isShowingFlags ? "Tap the flag of" : "Get Ready to ..")
-                        .foregroundColor(.primary)
-                        .font(.subheadline.weight(.heavy))
-                    Text(isShowingFlags ? countries[correctAnswer] : "guess that flag !")
+                    Text(midText)
                         .foregroundColor(.blue)
-                        .font(isShowingFlags ? .largeTitle.weight(.semibold) : .largeTitle.weight(.thin))
+    //                    .font(isShowingFlags ? .largeTitle.weight(.semibold) : .largeTitle.weight(.thin))
+                        .font(.system(size: isShowingEmoji ? 60 : 30))
                         .italic()
-                }
-                ZStack {
+                        .padding(isShowingEmoji ? 8 : 4)
+                        .background(Color(isShowingEmoji ? .black : .clear))
+                        .animation(.spring(response: 0.8, dampingFraction: 0.5, blendDuration: 0.7), value: isShowingEmoji)
+                        .clipShape(Ellipse())
+                        .animation(.spring(response: 0.6, dampingFraction: 0.5, blendDuration: 0.4), value: isShowingEmoji)
+                
+                   
+               
+                    
+            }
+            ZStack {
                 VStack {
                     Image(maps[0])
                         .renderingMode(.original)
                         .clipShape(Capsule(style: .continuous))
+                    
                     
                     Image(maps[1])
                         .renderingMode(.original)
@@ -142,53 +186,121 @@ struct ContentView: View {
                             .clipShape(Capsule(style: .continuous))
                             .shadow(radius: 5)
                             .transition(.push(from: .trailing))
+                            .rotation3DEffect(.degrees(animateAxisZero),
+                                              axis: (x: 0, y: 1, z: 0))
                         Image(countries[1])
                             .renderingMode(.original)
                             .clipShape(Capsule(style: .continuous))
                             .shadow(radius: 5)
                             .transition(.push(from: .trailing))
+                            .rotation3DEffect(.degrees(animateAxisOne),
+                                              axis: (x: 0, y: 1, z: 0))
                         Image(countries[2])
                             .renderingMode(.original)
                             .clipShape(Capsule(style: .continuous))
                             .shadow(radius: 5)
                             .transition(.push(from: .trailing))
+                            .rotation3DEffect(.degrees(animateAxisTwo),
+                                              axis: (x: 0, y: 1, z: 0))
+                        
                     }
                 }
                 
+// MARK: - BUTTONS
+                
                 VStack {
-                    ForEach(0..<3) { number in
                         Button {
-                            flagTapped(number)
-                            withAnimation {
-                                isShowingFlags = false
+                            flagTapped(0)
+                        
+                            withAnimation(.easeInOut(duration: 1.8)) {
+                                animateAxisZero += 1080
                             }
                         } label: {
-                            Image(countries[number])
+                            Image(countries[0])
                                 .renderingMode(.original)
                                 .clipShape(Capsule(style: .continuous))
                             
                         }
                         .padding(4)
                         .opacity(buttonsOpacity)
+                    
+                    Button {
+                        flagTapped(1)
+
+                        withAnimation(.easeInOut(duration: 1.8)) {
+                            animateAxisOne += 1080
+                        }
+                    } label: {
+                        Image(countries[1])
+                            .renderingMode(.original)
+                            .clipShape(Capsule(style: .continuous))
                     }
+                    .padding(4)
+                    .opacity(buttonsOpacity)
+                    
+                    Button {
+                        flagTapped(2)
+                       
+                        withAnimation(.easeInOut(duration: 1.8)) {
+                            animateAxisTwo += 1080
+                        }
+                    } label: {
+                        Image(countries[2])
+                            .renderingMode(.original)
+                            .clipShape(Capsule(style: .continuous))
+                     }
+                    .padding(4)
+                    .opacity(buttonsOpacity)
+                    
                 }
             }
+            
+        } // end VStack
+        .padding(20)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .animation(.easeInOut(duration: 0.5), value: isShowingEmoji)
         
-            } // end VStack
+            
+            Button("Start Game", action: {
+                withAnimation {
+                   continueGame()
+                }
+            })
+            .font(.largeTitle)
             .padding(20)
             .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-    
+            .clipShape(Ellipse())
+            .offset(y: isShowingStartGame ? 300 : 500)
+            .animation(.spring(response: isShowingStartGame ? 1.4 : 0.6,                                dampingFraction: 0.6,
+                                blendDuration: 0.8),
+                                value: isShowingStartGame
+                               )
             
-            
-        } // end ZStack 1
+            Button("Play Round", action: {
+                withAnimation {
+                   askQuestion()
+                }
+            })
+            .font(.largeTitle)
+            .foregroundColor(.primary)
+            .padding(20)
+            .background(.ultraThinMaterial)
+            .clipShape(Ellipse())
+            .offset(y: isShowingPlayButton ? 300 : 500)
+            .animation(.spring(response: isShowingPlayButton ? 1.4 : 0.6,                                dampingFraction: 0.6,
+                                blendDuration: 0.8),
+                                value: isShowingPlayButton
+                               )
+        
+    } // end ZStack 1
         .alert(scoreTitle, isPresented: $showingScore) {
             Button("Continue", action: askQuestion  )
         } message: {
             Text("Your winning scorestreak is \(score)")
         }
-        
     
+
         
     } //end body View
 
@@ -197,36 +309,148 @@ struct ContentView: View {
     //* MARK: - METHODS
     //* ***************************************************************************** */
 
-    func flagTapped(_ number: Int) {
-        
-        if number == correctAnswer {
+    func resetGame() {
+       
             isShowingFlags = false
+        isShowingPlayButton = false
             buttonsOpacity = 0.0
-            scoreTitle = "Correctemundo"
-            score += 1
-        } else {
-            isShowingFlags = false
-            buttonsOpacity = 0.0
-            scoreTitle = "Wrong"
+            currentRound = 0
             score = 0
-            blackCover = 1.0
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                resetGradientBackDrop()
-                
-            }
-            
-        }
-        showingScore = true
+            isShowingStartGame = true
+        topText = "can you .."
+        midText = "Guess the Flag ?"
     }
     
+    func continueGame() {
+        
+          isShowingStartGame = false
+              currentRound = 1
+         checkRound(round: currentRound)
+    }
+    
+    func checkRound(round : Int){
+        // enter currentRound when called
+        switch round {
+        case 0 : setUpRound(round: 0)
+        case 1 : setUpRound(round: 1)
+        case 2...9 : setUpRound(round: round)
+        case 10 : setUpRound(round: 10)
+        default : resetGame()
+        }
+    }
+    
+    func setUpRound(round: Int) {
+        changeTextsAnimated(when: .beforeRound, round: round, changeComment: .topText)
+        changeTextsAnimated(when: .beforeRound, round: round, changeComment: .midText)
+        isShowingPlayButton = true
+    }
+    
+    func changeTextsAnimated(when: ShowTime, round : Int, changeComment : GameLabel) {
+        var comment = ""
+        var buildingComment = ""
+        
+        // which Text label needs to be changed ?
+        switch changeComment {
+        case .topText:
+            // what time during the Show ?
+            switch when {
+                
+            case .beforeRound : topText = "Get Ready !"
+            case .playRound : topText = "what flag belongs to .."
+            case .afterRound : topText = ""
+            }
+        case .midText:
+            switch when {
+                
+            case .beforeRound : typeText(comment: roundStrings[round])
+            case .playRound : typeText(comment: countries[correctAnswer])
+            case .afterRound : typeText(comment: "hmmm")
+            }
+        }
+        
+        func typeText(comment : String) {
+            let commentToBePresented = Array(comment)
+            
+            for i in 0..<comment.count {
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2 * Double(i)) {
+                    withAnimation {
+                        buildingComment.append(commentToBePresented[i])
+                        // update on-Screen
+                        midText = buildingComment
+                    }
+                }
+            }
+            
+        } // end TypeText func
+    } // end changeTextAnimated func
+
+    
     func askQuestion() {
+        isShowingPlayButton = false
+        isShowingEmoji = false
+        
         // if prev Question was answered wrong undo fade to black
         if blackCover == 1.0 {
             blackCover = 0.0
         }
         countries.shuffle()
         correctAnswer = Int.random(in: 0...2)
+        
+        setUpPlayRound()
+    }
+    
+    func setUpPlayRound() {
+        changeTextsAnimated(when: .playRound, round: currentRound, changeComment: .topText)
+        changeTextsAnimated(when: .playRound, round: currentRound, changeComment: .midText)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            isShowingFlags = true
+            buttonsOpacity = 0.1
+        }
+    }
+    
+    func flagTapped(_ number: Int) {
+        buttonsOpacity = 0.0
+        
+        currentRound += 1
+        topText = ""
+        midText = ""
+        
+        if number == correctAnswer {
+            
+            withAnimation {
+                midText = winningEmoji.randomElement() ?? "👍🏻"
+                isShowingEmoji = true
+            }
+            // actual challenge
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.9) {
+            isShowingFlags = false
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                resetGradientBackDrop()
+                scoreTitle = "Correctemundo"
+                score += 1
+                showingScore = true
+            }
+            
+        } else {
+            blackCover = 1.0
+            withAnimation {
+                midText = losingEmoji.randomElement() ?? "👎🏻"
+                isShowingEmoji = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.9) {
+            isShowingFlags = false
+           }
+           DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            scoreTitle = "Wrong"
+            lives -= 1
+               showingScore = true
+               
+            }
+        }
     }
     
     func resetGradientBackDrop() {
@@ -246,8 +470,8 @@ struct ContentView: View {
             colorPickTop = colorPickTopTemp
             colorPickBottom = colorPickBottomTemp
  //some colours dont go well together
-        print("colorPickTop = \(colorPickTop)")
-        print("colorPickBottom = \(colorPickBottom)")
+        // print("colorPickTop = \(colorPickTop)")
+        // print("colorPickBottom = \(colorPickBottom)")
 
         var colorLineTopTemp = linesPicked.randomElement() ?? 0.1
         let colorLineBottomTemp = linesPicked.randomElement() ?? 1.0
@@ -261,19 +485,19 @@ struct ContentView: View {
  
         colorLineTop =  colorLineTopTemp
         colorLineBottom =  colorLineBottomTemp
-        print("colorLineTop is \(colorLineTop.formatted())")
-        print("colorLineBottom is \(colorLineBottom.formatted())")
+        // print("colorLineTop is \(colorLineTop.formatted())")
+        // print("colorLineBottom is \(colorLineBottom.formatted())")
 
         startRad = startRadii.randomElement() ?? 50.0
         endRad = endRadii.randomElement() ?? 200.0
         
         UnitPointer = centreTop
-        print("UnitPointer is \(UnitPointer)")
+        // print("UnitPointer is \(UnitPointer)")
         groupOpacity = Double.random(in: 0.4...1.0)
-        print("groupOpacity is \(groupOpacity.formatted())")
+        // print("groupOpacity is \(groupOpacity.formatted())")
         
         refreshGradientTime = Double.random(in: 3.0...9.0)
-        print("refreshGradientTimer = \(refreshGradientTime.formatted())")
+        // print("refreshGradientTimer = \(refreshGradientTime.formatted())")
         
         changeBackDrop += 1
     }
@@ -293,6 +517,7 @@ struct ContentView: View {
         changeBackDrop += 1
     }
     
+   
 } // end ContentView
 
 
