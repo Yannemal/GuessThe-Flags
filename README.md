@@ -12,3 +12,5 @@ It was good practice getting my head around layering using ZStacks within Zstack
 - I have reorganised my code to allow for more complicated flow of the game with more steps in between to allow for presentation like animated text for each round THEN show the flags
 - succes or fail states of the game come with unique animations: changing the background / fade to black. appropriate emojis THEN the alert pop up with score and continue button
 - THE ACTUAL CHALLENGE TO COMPLETE : twirling the flag chosen on the Y axis 
+
+![Screenshot 2023-07-24 at 01 43 14](https://github.com/Yannemal/GuessThe-Flags/assets/56878180/a04cbe74-59e8-41de-acaf-f7f1f85959e1)
